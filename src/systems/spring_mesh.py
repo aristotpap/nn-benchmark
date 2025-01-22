@@ -139,6 +139,7 @@ class SpringMeshSystem(System):
             forces = np.zeros(shape=(q.shape[0], n_particles, n_dims), dtype=q.dtype)
             gather_forces(edge_forces=edge_forces, out=forces)
             forces -= viscosity_constant * q_dot
+            #forces += np.random.randn(*forces.shape) * 0.01
             # Mask forces on fixed particles
             forces[:, fixed_idxs, :] = 0
             return forces

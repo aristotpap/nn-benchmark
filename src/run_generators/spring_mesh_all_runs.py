@@ -15,11 +15,11 @@ mesh_size = 10
 EPOCHS = 400 * 2
 NUM_REPEATS = 3
 # Spring base parameters
-SPRING_END_TIME = 30#2 * math.pi
+SPRING_END_TIME = 15#2 * math.pi
 SPRING_DT = 0.01#0.00781
 SPRING_STEPS = math.ceil(SPRING_END_TIME / SPRING_DT)
-VEL_DECAY = (0.001, 0.1) #0
-VEL_DECAY_OUTDIST = (0.12, 0.2)
+VEL_DECAY = 0#(0.1, 0.2) #0
+VEL_DECAY_OUTDIST = (0.3, 0.5)
 SPRING_SUBSAMPLE = 2**7
 EVAL_INTEGRATORS = ["leapfrog", "euler", "rk4"]
 
@@ -34,16 +34,16 @@ experiment_deriv = utils.Experiment(f"springmesh-{mesh_size}-perturball-runs-der
 experiment_coarse_int = utils.Experiment(f"springmesh-{mesh_size}-coarse-int")
 
 mesh_gen = utils.SpringMeshGridGenerator(grid_shape=(mesh_size, mesh_size), fix_particles="top", 
-                                         mass_range = (1e-3, 1.5), spring_c_range = (1e-3, 1.5))
+                                         mass_range = (1e-1, 2), spring_c_range = (0.001, 0.5))
 
 mesh_gen_outdist = utils.SpringMeshGridGenerator(grid_shape=(mesh_size, mesh_size), fix_particles="top", 
-                                         mass_range = (1.5, 3.0), spring_c_range = (1.5, 3.0))
+                                         mass_range = (3, 5.0), spring_c_range = (1.0, 3.0))
 
 
-train_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
-val_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
-eval_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
-eval_outdist_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen_outdist, magnitude_range=(0.35, 0.45))
+train_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.6))
+val_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.6))
+eval_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.6))
+eval_outdist_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen_outdist, magnitude_range=(0.65, 0.8))
 
 train_sets = []
 val_set = None

@@ -18,7 +18,7 @@ NUM_REPEATS = 3
 SPRING_END_TIME = 30#2 * math.pi
 SPRING_DT = 0.01#0.00781
 SPRING_STEPS = math.ceil(SPRING_END_TIME / SPRING_DT)
-VEL_DECAY = (0.001, 0.1) #0
+VEL_DECAY = (0.001, 0.1) #0.1
 VEL_DECAY_OUTDIST = (0.12, 0.2)
 SPRING_SUBSAMPLE = 2**7
 EVAL_INTEGRATORS = ["leapfrog", "euler", "rk4"]
@@ -61,7 +61,8 @@ for num_traj in TRAIN_SET_SIZES:
                                 time_step_size=SPRING_DT,
                                 subsampling=SPRING_SUBSAMPLE,
                                 noise_sigma=0,
-                                vel_decay=VEL_DECAY))
+                                vel_decay=VEL_DECAY,
+                                control_range=(0, 1)))
 writable_objects.extend(train_sets)
 # Generate val set
 val_set = utils.SpringMeshDataset(experiment_general,
@@ -72,7 +73,8 @@ val_set = utils.SpringMeshDataset(experiment_general,
                                   time_step_size=SPRING_DT,
                                   subsampling=SPRING_SUBSAMPLE,
                                   noise_sigma=0,
-                                  vel_decay=VEL_DECAY)
+                                  vel_decay=VEL_DECAY,
+                                  control_range=(0, 1)))
 writable_objects.append(val_set)
 # Generate eval sets
 for source, num_traj, type_key, step_multiplier, vel_decay in [
@@ -93,7 +95,8 @@ for source, num_traj, type_key, step_multiplier, vel_decay in [
                                             time_step_size=_spring_dt,
                                             subsampling=_spring_subsample,
                                             noise_sigma=0,
-                                            vel_decay=vel_decay)
+                                            vel_decay=vel_decay,
+                                            control_range=(0, 1))
         _eval_set.name_tag = f"cors{coarse}"
         if coarse not in eval_sets:
             eval_sets[coarse] = []

@@ -627,7 +627,7 @@ class SpringMeshDataset(Dataset):
     def __init__(self, experiment, initial_cond_source, num_traj,
                  set_type="train",
                  num_time_steps=500, time_step_size=0.1,
-                 subsampling=10, noise_sigma=0, vel_decay=0.1):
+                 subsampling=10, noise_sigma=0, vel_decay=0.1, ctrl_range = (0, 0)):
         super().__init__(experiment=experiment,
                          name_tail=f"n{num_traj}-t{num_time_steps}-n{noise_sigma}",
                          system="spring-mesh",
@@ -645,6 +645,7 @@ class SpringMeshDataset(Dataset):
             self.vel_decay = np.random.uniform(vel_decay[0], vel_decay[1])
         else:
             self.vel_decay = vel_decay
+        self.ctrl_range = ctrl_range
         self.initial_conditions = self.initial_cond_source.sample_initial_conditions(self.num_traj)
         self.n_dim = initial_cond_source.n_dim
         self.n_particles = initial_cond_source.n_particles
@@ -667,6 +668,7 @@ class SpringMeshDataset(Dataset):
                 "system": "spring-mesh",
                 "system_args": {
                     "vel_decay": self.vel_decay,
+                    "ctrl_range": self.ctrl_range,
                     "trajectory_defs": trajectories,
                 }
             },

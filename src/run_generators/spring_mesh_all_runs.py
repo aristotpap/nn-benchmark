@@ -18,13 +18,14 @@ NUM_REPEATS = 3
 SPRING_END_TIME = 15#2 * math.pi
 SPRING_DT = 0.01#0.00781
 SPRING_STEPS = math.ceil(SPRING_END_TIME / SPRING_DT)
-VEL_DECAY = 0#(0.1, 0.2) #0
+VEL_DECAY = (0.1, 0.2) #0
 VEL_DECAY_OUTDIST = (0.3, 0.5)
 SPRING_SUBSAMPLE = 2**7
 EVAL_INTEGRATORS = ["leapfrog", "euler", "rk4"]
 
-COARSE_LEVELS = [1]  # Used for time skew parameter for training & validation
-TRAIN_SET_SIZES = [30] #[25, 50, 100]
+num_sys = 30
+COARSE_LEVELS = [1 for _ in range(10)]  # Used for time skew parameter for training & validation
+TRAIN_SET_SIZES = [1 for _ in range(num_sys)]
 
 writable_objects = []
 
@@ -64,6 +65,7 @@ for num_traj in TRAIN_SET_SIZES:
                                 vel_decay=VEL_DECAY))
 writable_objects.extend(train_sets)
 # Generate val set
+
 val_set = utils.SpringMeshDataset(experiment_general,
                                   val_source,
                                   3,
@@ -76,15 +78,15 @@ val_set = utils.SpringMeshDataset(experiment_general,
 writable_objects.append(val_set)
 # Generate eval sets
 for source, num_traj, type_key, step_multiplier, vel_decay in [
-        (eval_source, 15, "eval", 1, VEL_DECAY),
+        # (eval_source, 15, "eval", 1, VEL_DECAY),
         #(eval_source, 5, "eval-long", 3),
-        (eval_outdist_source, 15, "eval-outdist", 1, VEL_DECAY_OUTDIST),
+        (eval_outdist_source, 1, "eval-outdist", 1, VEL_DECAY_OUTDIST),
         #(eval_outdist_source, 5, "eval-outdist-long", 3),
         ]:
     for coarse in COARSE_LEVELS:
-        _spring_dt = SPRING_DT * coarse
+        _spring_dt = SPRING_DT #* coarse
         _spring_steps = math.ceil(SPRING_END_TIME / _spring_dt)
-        _spring_subsample = SPRING_SUBSAMPLE * coarse
+        _spring_subsample = SPRING_SUBSAMPLE #* coarse
         _eval_set = utils.SpringMeshDataset(experiment_general,
                                             source,
                                             num_traj,
@@ -94,7 +96,7 @@ for source, num_traj, type_key, step_multiplier, vel_decay in [
                                             subsampling=_spring_subsample,
                                             noise_sigma=0,
                                             vel_decay=vel_decay)
-        _eval_set.name_tag = f"cors{coarse}"
+        _eval_set.name_tag = f"sys{coarse}"
         if coarse not in eval_sets:
             eval_sets[coarse] = []
         eval_sets[coarse].append(_eval_set)

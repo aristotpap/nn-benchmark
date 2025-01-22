@@ -147,11 +147,13 @@ class SpringInitialConditionSource(InitialConditionSource):
 
 
 class SpringMeshGridGenerator:
-    def __init__(self, grid_shape, fix_particles="corners"):
+    def __init__(self, grid_shape, fix_particles="corners", mass_range = None, spring_c_range = None):
         self.grid_shape = grid_shape
         self.n_dims = len(grid_shape)
         self.n_dim = self.n_dims
         self.n_particles = 1
+        self.mass_range = mass_range
+        self.spring_c_range = spring_c_range
         for s in grid_shape:
             self.n_particles *= s
         self._particles = None
@@ -169,11 +171,18 @@ class SpringMeshGridGenerator:
             # Generate particle descriptions
             for coords in itertools.product(*ranges):
                 fixed = self._fixed_pred(self, coords)
-                particle_def = {
-                    "mass": 1.0,
-                    "is_fixed": fixed,
-                    "position": list(coords),
-                }
+                if self.mass_range is not None:
+                    particle_def = {
+                        "mass": np.random.uniform(*self.mass_range),
+                        "is_fixed": fixed,
+                        "position": list(coords),
+                    }
+                else:
+                    particle_def = {
+                            "mass": 1.0,
+                            "is_fixed": fixed,
+                            "position": list(coords),
+                        }
                 particles.append(particle_def)
             # Add edges
             for (a, part_a), (b, part_b) in itertools.combinations(enumerate(particles), 2):
@@ -183,12 +192,20 @@ class SpringMeshGridGenerator:
                     continue
                 # Add the edge
                 length = math.sqrt(sum((pa - pb) ** 2 for pa, pb in zip(part_a["position"], part_b["position"])))
-                spring_def = {
-                    "a": a,
-                    "b": b,
-                    "spring_const": 1.0,
-                    "rest_length": length,
-                }
+                if self.spring_c_range is not None:
+                    spring_def = {
+                        "a": a,
+                        "b": b,
+                        "spring_const": np.random.uniform(*self.spring_c_range),
+                        "rest_length": length,
+                    }
+                else:
+                    spring_def = {
+                        "a": a,
+                        "b": b,
+                        "spring_const": 1.0,
+                        "rest_length": length,
+                    }   
                 springs.append(spring_def)
             self._particles = particles
             self._springs = springs
@@ -621,7 +638,13 @@ class SpringMeshDataset(Dataset):
         self.time_step_size = time_step_size
         self.subsampling = subsampling
         self.noise_sigma = noise_sigma
-        self.vel_decay = vel_decay
+        # Handle vel_decay as a scalar or a tuple
+        if isinstance(vel_decay, tuple):
+            if len(vel_decay) != 2:
+                raise ValueError("vel_decay tuple must have exactly two elements (min, max).")
+            self.vel_decay = np.random.uniform(vel_decay[0], vel_decay[1])
+        else:
+            self.vel_decay = vel_decay
         self.initial_conditions = self.initial_cond_source.sample_initial_conditions(self.num_traj)
         self.n_dim = initial_cond_source.n_dim
         self.n_particles = initial_cond_source.n_particles

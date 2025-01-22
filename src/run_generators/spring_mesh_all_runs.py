@@ -15,15 +15,16 @@ mesh_size = 10
 EPOCHS = 400 * 2
 NUM_REPEATS = 3
 # Spring base parameters
-SPRING_END_TIME = 2 * math.pi
-SPRING_DT = 0.00781
+SPRING_END_TIME = 30#2 * math.pi
+SPRING_DT = 0.01#0.00781
 SPRING_STEPS = math.ceil(SPRING_END_TIME / SPRING_DT)
-VEL_DECAY = 0.1
+VEL_DECAY = (0.001, 0.1) #0
+VEL_DECAY_OUTDIST = (0.12, 0.2)
 SPRING_SUBSAMPLE = 2**7
 EVAL_INTEGRATORS = ["leapfrog", "euler", "rk4"]
 
 COARSE_LEVELS = [1]  # Used for time skew parameter for training & validation
-TRAIN_SET_SIZES = [25, 50, 100]
+TRAIN_SET_SIZES = [30] #[25, 50, 100]
 
 writable_objects = []
 
@@ -32,13 +33,17 @@ experiment_step = utils.Experiment(f"springmesh-{mesh_size}-perturball-runs-step
 experiment_deriv = utils.Experiment(f"springmesh-{mesh_size}-perturball-runs-deriv")
 experiment_coarse_int = utils.Experiment(f"springmesh-{mesh_size}-coarse-int")
 
-mesh_gen = utils.SpringMeshGridGenerator(grid_shape=(mesh_size, mesh_size), fix_particles="top")
+mesh_gen = utils.SpringMeshGridGenerator(grid_shape=(mesh_size, mesh_size), fix_particles="top", 
+                                         mass_range = (1e-3, 1.5), spring_c_range = (1e-3, 1.5))
+
+mesh_gen_outdist = utils.SpringMeshGridGenerator(grid_shape=(mesh_size, mesh_size), fix_particles="top", 
+                                         mass_range = (1.5, 3.0), spring_c_range = (1.5, 3.0))
 
 
 train_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
 val_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
 eval_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0, 0.35))
-eval_outdist_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen, magnitude_range=(0.35, 0.45))
+eval_outdist_source = utils.SpringMeshAllPerturb(mesh_generator=mesh_gen_outdist, magnitude_range=(0.35, 0.45))
 
 train_sets = []
 val_set = None
@@ -70,10 +75,10 @@ val_set = utils.SpringMeshDataset(experiment_general,
                                   vel_decay=VEL_DECAY)
 writable_objects.append(val_set)
 # Generate eval sets
-for source, num_traj, type_key, step_multiplier in [
-        (eval_source, 15, "eval", 1),
+for source, num_traj, type_key, step_multiplier, vel_decay in [
+        (eval_source, 15, "eval", 1, VEL_DECAY),
         #(eval_source, 5, "eval-long", 3),
-        (eval_outdist_source, 15, "eval-outdist", 1),
+        (eval_outdist_source, 15, "eval-outdist", 1, VEL_DECAY_OUTDIST),
         #(eval_outdist_source, 5, "eval-outdist-long", 3),
         ]:
     for coarse in COARSE_LEVELS:
@@ -88,7 +93,7 @@ for source, num_traj, type_key, step_multiplier in [
                                             time_step_size=_spring_dt,
                                             subsampling=_spring_subsample,
                                             noise_sigma=0,
-                                            vel_decay=VEL_DECAY)
+                                            vel_decay=vel_decay)
         _eval_set.name_tag = f"cors{coarse}"
         if coarse not in eval_sets:
             eval_sets[coarse] = []

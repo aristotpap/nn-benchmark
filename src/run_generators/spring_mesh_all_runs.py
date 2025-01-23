@@ -4,6 +4,7 @@ import pathlib
 from collections import namedtuple
 import itertools
 import math
+import numpy as np
 parser = argparse.ArgumentParser(description="Generate run descriptions")
 parser.add_argument("base_dir", type=str,
                     help="Base directory for run descriptions")
@@ -18,12 +19,12 @@ NUM_REPEATS = 3
 SPRING_END_TIME = 15#2 * math.pi
 SPRING_DT = 0.01#0.00781
 SPRING_STEPS = math.ceil(SPRING_END_TIME / SPRING_DT)
-VEL_DECAY = (0.1, 0.2) #0
+VEL_DECAY = (0.1, 0.2) #0.1
 VEL_DECAY_OUTDIST = (0.3, 0.5)
 SPRING_SUBSAMPLE = 2**7
 EVAL_INTEGRATORS = ["leapfrog", "euler", "rk4"]
 
-num_sys = 30
+num_sys = 25
 COARSE_LEVELS = [1 for _ in range(10)]  # Used for time skew parameter for training & validation
 TRAIN_SET_SIZES = [1 for _ in range(num_sys)]
 
@@ -53,6 +54,7 @@ eval_sets = {}
 # Generate data sets
 # Generate train set
 for num_traj in TRAIN_SET_SIZES:
+    std_noise = np.random.uniform(1e-4, 1e-3)
     train_sets.append(
         utils.SpringMeshDataset(experiment_general,
                                 train_source,
@@ -61,21 +63,27 @@ for num_traj in TRAIN_SET_SIZES:
                                 num_time_steps=SPRING_STEPS,
                                 time_step_size=SPRING_DT,
                                 subsampling=SPRING_SUBSAMPLE,
-                                noise_sigma=0,
+                                noise_sigma=std_noise,
                                 vel_decay=VEL_DECAY))
 writable_objects.extend(train_sets)
 # Generate val set
 
-val_set = utils.SpringMeshDataset(experiment_general,
-                                  val_source,
-                                  3,
-                                  set_type="val",
-                                  num_time_steps=SPRING_STEPS,
-                                  time_step_size=SPRING_DT,
-                                  subsampling=SPRING_SUBSAMPLE,
-                                  noise_sigma=0,
-                                  vel_decay=VEL_DECAY)
-writable_objects.append(val_set)
+val_sets_list = []
+for sys in range(10):
+    std_noise = np.random.uniform(1e-3, 1e-2)
+    val_set = utils.SpringMeshDataset(experiment_general,
+                                    eval_outdist_source,
+                                    1,
+                                    set_type="eval-outdist",
+                                    num_time_steps=SPRING_STEPS,
+                                    time_step_size=SPRING_DT,
+                                    subsampling=SPRING_SUBSAMPLE,
+                                    noise_sigma=std_noise,
+                                    vel_decay=VEL_DECAY_OUTDIST)
+    
+    val_sets_list.append(val_set)
+writable_objects.extend(val_sets_list)
+
 # Generate eval sets
 for source, num_traj, type_key, step_multiplier, vel_decay in [
         # (eval_source, 15, "eval", 1, VEL_DECAY),
@@ -85,6 +93,7 @@ for source, num_traj, type_key, step_multiplier, vel_decay in [
         ]:
     for coarse in COARSE_LEVELS:
         _spring_dt = SPRING_DT #* coarse
+        std_noise = np.random.uniform(1e-3, 1e-2)
         _spring_steps = math.ceil(SPRING_END_TIME / _spring_dt)
         _spring_subsample = SPRING_SUBSAMPLE #* coarse
         _eval_set = utils.SpringMeshDataset(experiment_general,
@@ -94,7 +103,7 @@ for source, num_traj, type_key, step_multiplier, vel_decay in [
                                             num_time_steps=_spring_steps,
                                             time_step_size=_spring_dt,
                                             subsampling=_spring_subsample,
-                                            noise_sigma=0,
+                                            noise_sigma=std_noise,
                                             vel_decay=vel_decay)
         _eval_set.name_tag = f"sys{coarse}"
         if coarse not in eval_sets:
